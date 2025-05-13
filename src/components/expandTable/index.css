@@ -1,0 +1,53 @@
+.table-container {
+  margin: 5px;
+  display: flex;
+  flex-direction: column;
+  width: auto;
+  min-width: fit-content;
+}
+
+.single-table-container {
+  margin-bottom: 10px;
+  width: auto;
+  min-width: fit-content;
+}
+
+.custom-table {
+  width: auto !important; /* 改为自适应宽度，而不是100% */
+  table-layout: auto;
+  min-width: fit-content;
+}
+
+.custom-table .ant-table {
+  width: auto !important;
+  min-width: fit-content;
+}
+
+.custom-table .ant-table-container {
+  width: auto !important;
+  min-width: fit-content;
+}
+
+.custom-table .ant-table-thead > tr > th {
+  background-color: #f0f2f5;
+  font-weight: bold;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.custom-table .ant-table-tbody > tr > td {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.table-header {
+  /* border-radius: 10%; */
+  background-color: #f0f2f5;
+  padding: 8px 16px;
+  font-weight: bold;
+  text-align: center;
+  border: 1px solid #f0f0f0;
+  border-bottom: none;
+  width: 100%;
+}
+

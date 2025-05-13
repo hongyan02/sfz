@@ -1,0 +1,31 @@
+.box-container {
+  display: inline-flex;
+  flex-direction: column;
+  margin: 0;
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+  overflow: visible;
+  width:auto !important;
+  min-width: fit-content;
+}
+
+.box-header {
+  background-color: #f0f2f5;
+  padding: 10px 16px;
+  font-weight: bold;
+  text-align: center;
+  border-bottom: 1px solid #f0f0f0;
+  width: 100%;
+}
+
+.box-content {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+}
+
+.box-children-container {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
