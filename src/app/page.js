@@ -54,9 +54,9 @@ export default function Home() {
     };
     
     return ( 
-      <div className="min-h-screen p-8 font-[family-name:var(--font-geist-sans)]">
-        {/* 添加电芯条码输入框和查询按钮 */}
-        <div className="mb-4 flex items-center">
+      <div className="h-screen flex flex-col p-4">
+        {/* 顶部搜索区域 - 使用最小高度 */}
+        <div className="min-h-[60px] mb-2 flex items-center">
           <div className="mr-2 font-bold">电芯条码：</div>
           <Input 
             placeholder="请输入电芯条码" 
@@ -76,46 +76,43 @@ export default function Home() {
           </Button>
         </div>
         
-        {/* 显示错误信息 */}
+        {/* 错误信息区域 - 只在有错误时显示 */}
         {error && (
-          <div className="mb-4 text-red-500">
+          <div className="mb-2 text-red-500">
             错误: {error}
           </div>
         )}
         
-        {/* 移除当前查询的电芯条码显示 */}
-        
-        <div className="overflow-x-auto whitespace-nowrap">
-          <div className="inline-flex" style={{ columnGap: 0 }}>
-            
+        {/* 表格区域 - 使用flex-grow占据剩余空间 */}
+        <div className="flex-grow overflow-x-auto overflow-y-auto whitespace-nowrap full-height-container">
+          <div className="inline-flex h-full" style={{ columnGap: 0 }}>
             <TableOne />
-
             <BoxDiv title="浆料">
               <ExpandTable operationName="C021" tableTitle="正极浆料" />
               <ExpandTable operationName="C022" tableTitle="陶瓷浆料" />
               <ExpandTable operationName="A020" tableTitle="负极浆料" />
             </BoxDiv>
-
+        
             <BoxDiv title="涂布卷">
               <ExpandTable operationName="C030" tableTitle="正极涂布卷" />
               <ExpandTable operationName="A030" tableTitle="负极涂布卷" />
             </BoxDiv>
-
+        
             <BoxDiv title="辊分卷">
               <ExpandTable operationName="C040" tableTitle="正极辊分卷" />
               <ExpandTable operationName="A040" tableTitle="负极辊分卷" />
             </BoxDiv>
-
+        
             <BoxDiv title="芯包">
               <ExpandTable operationNames={["S010", "E010", "E020"]}  tableTitle="A芯包" />
               <ExpandTable operationNames={["S010", "E010", "E020"]}  tableTitle="B芯包" />
               <ExpandTable operationNames={["E030"]}  tableTitle="双芯包" />
             </BoxDiv>
-
+        
           <BoxDiv title="裸电芯">
             <ExpandTable operationNames={["E040", "E050", "E060", "E070", "E080", "E090", "E100"]}  tableTitle="裸电芯" />
           </BoxDiv>
-
+        
           <BoxDiv title="电芯">
             <ExpandTable operationNames={["F100", "F120", "F130", "F140", "F150", "F160", "F170"]}  tableTitle="电芯" />
           </BoxDiv>

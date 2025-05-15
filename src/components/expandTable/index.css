@@ -4,28 +4,27 @@
   flex-direction: column;
   width: auto;
   min-width: fit-content;
-}
-
-.single-table-container {
-  margin-bottom: 10px;
-  width: auto;
-  min-width: fit-content;
+  height: 100%; /* 占满父容器高度 */
 }
 
 .custom-table {
-  width: auto !important; /* 改为自适应宽度，而不是100% */
+  width: auto !important;
   table-layout: auto;
   min-width: fit-content;
+  height: calc(100% - 40px); /* 减去标题高度 */
 }
 
 .custom-table .ant-table {
-  width: auto !important;
-  min-width: fit-content;
+  height: 100%;
 }
 
 .custom-table .ant-table-container {
-  width: auto !important;
-  min-width: fit-content;
+  height: 100%;
+}
+
+.custom-table .ant-table-body {
+  height: calc(100% - 40px); /* 减去表头高度 */
+  overflow-y: auto !important;
 }
 
 .custom-table .ant-table-thead > tr > th {
@@ -49,5 +48,11 @@
   border: 1px solid #f0f0f0;
   border-bottom: none;
   width: 100%;
+}
+
+/* 添加滚动条样式 */
+.custom-table .ant-table-body {
+  overflow-y: auto !important;
+  max-height: 50vh !important;
 }
 
