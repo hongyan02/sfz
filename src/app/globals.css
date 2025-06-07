@@ -1,26 +1,97 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+    --background: #ffffff;
+    --foreground: #171717;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --font-sans: var(--font-geist-sans);
+    --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+    :root {
+        --background: #0a0a0a;
+        --foreground: #ededed;
+    }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+/* 统一的表格边框样式 */
+.ant-table-bordered {
+    border: 1px solid #000000;
+}
+
+.ant-table-bordered .ant-table-container {
+    border: none;
+}
+
+.ant-table-bordered .ant-table-cell {
+    border-right: 1px solid #000000;
+    border-bottom: 1px solid #000000;
+}
+
+/* 移除最后一列的右边框 */
+.ant-table-bordered .ant-table-cell:last-child {
+    border-right: none;
+}
+
+/* 移除最后一行的下边框 */
+.ant-table-bordered .ant-table-tbody > tr:last-child > td {
+    border-bottom: none;
+}
+
+/* 表格头部样式 */
+.ant-table-thead > tr > th {
+    background-color: #fafafa;
+    color: #374151;
+    font-weight: 600;
+    border-right: 1px solid #000000;
+    border-bottom: 1px solid #000000;
+}
+
+/* 移除表头最后一列的右边框 */
+.ant-table-thead > tr > th:last-child {
+    border-right: none;
+}
+
+/* 表格行悬停效果 */
+.ant-table-tbody > tr:hover > td {
+    background-color: #f9fafb;
+}
+
+/* 表格文字居中 */
+.ant-table-tbody > tr > td,
+.ant-table-thead > tr > th {
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+/* 确保表格单元格内容居中 */
+.ant-table .ant-table-cell {
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* List组件文字居中 */
+.ant-list-item {
+    text-align: center;
+    justify-content: center;
+}
+
+.ant-list-item-meta-content {
+    text-align: center;
+}
+
+/* 确保List中的Typography组件也居中 */
+.ant-list-item .ant-typography {
+    text-align: center;
 }
