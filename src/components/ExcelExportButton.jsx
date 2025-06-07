@@ -26,6 +26,7 @@ const ExcelExportButton = ({
     const [loading, setLoading] = useState(false);
     const [previewVisible, setPreviewVisible] = useState(false);
     const [exportProgress, setExportProgress] = useState(0);
+    const [currentProcessing, setCurrentProcessing] = useState({ index: 0, barcode: "", total: 0 });
     const [previewData, setPreviewData] = useState([]);
     const [fetchedData, setFetchedData] = useState(new Map()); // 缓存从API获取的数据
 
@@ -481,54 +482,92 @@ const ExcelExportButton = ({
 
     /**
      * 生成Excel工作簿 - 使用真实API数据，添加调试信息
+     * @param {Map} dataMap - 电芯数据Map，如果不传则使用状态中的数据
      * @returns {Object} Excel工作簿对象
      */
-    const _generateWorkbook = useCallback(() => {
-        console.log("开始生成Excel工作簿");
-        console.log("导出数据:", exportData);
-        console.log("已获取的数据Map大小:", fetchedData.size);
-        console.log("已获取的数据详情:", Array.from(fetchedData.entries()));
+    const _generateWorkbook = useCallback(
+        (dataMap = null) => {
+            // 使用传入的数据或状态中的数据
+            const currentFetchedData = dataMap || fetchedData;
 
-        const workbook = XLSX.utils.book_new();
+            console.log("开始生成Excel工作簿");
+            console.log("导出数据:", exportData);
+            console.log("使用的数据来源:", dataMap ? "传入参数" : "状态数据");
+            console.log("已获取的数据Map大小:", currentFetchedData.size);
+            console.log("已获取的数据详情:", Array.from(currentFetchedData.entries()));
 
-        if (!exportData || exportData.length === 0) {
-            console.log("没有数据可导出，创建空工作表");
-            // 如果没有数据，创建一个空的工作表
-            const emptySheet = XLSX.utils.aoa_to_sheet([["暂无数据"]]);
-            XLSX.utils.book_append_sheet(workbook, emptySheet, "电芯数据");
-            return workbook;
-        }
+            const workbook = XLSX.utils.book_new();
 
-        // 收集所有电芯的数据到一个数组中
-        const allSheetData = [];
+            if (!exportData || exportData.length === 0) {
+                console.log("没有数据可导出，创建空工作表");
+                // 如果没有数据，创建一个空的工作表
+                const emptySheet = XLSX.utils.aoa_to_sheet([["暂无数据"]]);
+                XLSX.utils.book_append_sheet(workbook, emptySheet, "电芯数据");
+                return workbook;
+            }
 
-        exportData.forEach((item, index) => {
-            console.log(`\n--- 处理第 ${index + 1} 个电芯: ${item.barcode} ---`);
+            // 收集所有电芯的数据到一个数组中
+            const allSheetData = [];
 
-            // 获取该电芯的API数据
-            const apiData = fetchedData.get(item.barcode);
-            console.log(`电芯 ${item.barcode} 在缓存中存在:`, fetchedData.has(item.barcode));
-            console.log(`电芯 ${item.barcode} 的API数据:`, apiData);
+            exportData.forEach((item, index) => {
+                console.log(`\n--- 处理第 ${index + 1} 个电芯: ${item.barcode} ---`);
 
-            // 创建当前电芯的数据
-            let currentCellData = [];
+                // 获取该电芯的API数据
+                const apiData = currentFetchedData.get(item.barcode);
+                console.log(
+                    `电芯 ${item.barcode} 在缓存中存在:`,
+                    currentFetchedData.has(item.barcode)
+                );
+                console.log(`电芯 ${item.barcode} 的API数据:`, apiData);
 
-            // 添加表格数据
-            if (item.tableData && Array.isArray(item.tableData)) {
-                console.log(`电芯 ${item.barcode} 表格数据结构:`, item.tableData.length, "个分组");
-                if (apiData) {
-                    console.log(`使用API数据生成Excel内容`);
-                    currentCellData = _convertApiDataToExcelRows(
-                        apiData,
-                        item.barcode,
-                        item.tableData
+                // 创建当前电芯的数据
+                let currentCellData = [];
+
+                // 添加表格数据
+                if (item.tableData && Array.isArray(item.tableData)) {
+                    console.log(
+                        `电芯 ${item.barcode} 表格数据结构:`,
+                        item.tableData.length,
+                        "个分组"
                     );
+                    if (apiData) {
+                        console.log(`使用API数据生成Excel内容`);
+                        currentCellData = _convertApiDataToExcelRows(
+                            apiData,
+                            item.barcode,
+                            item.tableData
+                        );
+                    } else {
+                        console.warn(`电芯 ${item.barcode} 没有API数据，使用提示信息`);
+                        currentCellData = [
+                            [
+                                {
+                                    v: `电芯条码: ${item.barcode}`,
+                                    s: {
+                                        font: { bold: true, sz: 14 },
+                                        alignment: { horizontal: "center" },
+                                        fill: { fgColor: { rgb: "FFCDD2" } },
+                                    },
+                                },
+                            ],
+                            [
+                                {
+                                    v: "API数据获取失败",
+                                    s: { font: { sz: 12, color: { rgb: "D32F2F" } } },
+                                },
+                            ],
+                            [{ v: "可能原因:", s: { font: { bold: true, sz: 11 } } }],
+                            [{ v: "1. 网络连接问题", s: { font: { sz: 10 } } }],
+                            [{ v: "2. API接口返回空数据", s: { font: { sz: 10 } } }],
+                            [{ v: "3. 电芯条码不存在", s: { font: { sz: 10 } } }],
+                        ];
+                    }
                 } else {
-                    console.warn(`电芯 ${item.barcode} 没有API数据，使用提示信息`);
+                    console.warn(`电芯 ${item.barcode} 没有表格数据结构`);
                     currentCellData = [
                         [
                             {
-                                v: `电芯条码: ${item.barcode}`,
+                                v: `电芯条码: ${item.barcode || "未知"}`,
                                 s: {
                                     font: { bold: true, sz: 14 },
                                     alignment: { horizontal: "center" },
@@ -536,93 +575,72 @@ const ExcelExportButton = ({
                                 },
                             },
                         ],
-                        [
-                            {
-                                v: "API数据获取失败",
-                                s: { font: { sz: 12, color: { rgb: "D32F2F" } } },
-                            },
-                        ],
-                        [{ v: "可能原因:", s: { font: { bold: true, sz: 11 } } }],
-                        [{ v: "1. 网络连接问题", s: { font: { sz: 10 } } }],
-                        [{ v: "2. API接口返回空数据", s: { font: { sz: 10 } } }],
-                        [{ v: "3. 电芯条码不存在", s: { font: { sz: 10 } } }],
+                        [{ v: "暂无数据结构", s: { font: { sz: 12, color: { rgb: "D32F2F" } } } }],
                     ];
                 }
-            } else {
-                console.warn(`电芯 ${item.barcode} 没有表格数据结构`);
-                currentCellData = [
-                    [
+
+                console.log(`电芯 ${item.barcode} 最终Excel数据行数:`, currentCellData.length);
+                console.log(`前5行数据预览:`, currentCellData.slice(0, 5));
+
+                // 将当前电芯的数据添加到总数据中
+                allSheetData.push(...currentCellData);
+
+                // 在电芯之间添加分隔行（除了最后一个电芯）
+                if (index < exportData.length - 1) {
+                    allSheetData.push([{ v: "", s: {} }]); // 空行分隔
+                    allSheetData.push([
                         {
-                            v: `电芯条码: ${item.barcode || "未知"}`,
+                            v: "─".repeat(50),
                             s: {
-                                font: { bold: true, sz: 14 },
+                                font: { sz: 10, color: { rgb: "BDBDBD" } },
                                 alignment: { horizontal: "center" },
-                                fill: { fgColor: { rgb: "FFCDD2" } },
                             },
                         },
-                    ],
-                    [{ v: "暂无数据结构", s: { font: { sz: 12, color: { rgb: "D32F2F" } } } }],
-                ];
-            }
+                    ]); // 分隔线
+                    allSheetData.push([{ v: "", s: {} }]); // 空行分隔
+                }
+            });
 
-            console.log(`电芯 ${item.barcode} 最终Excel数据行数:`, currentCellData.length);
-            console.log(`前5行数据预览:`, currentCellData.slice(0, 5));
+            console.log(`合并后的总数据行数: ${allSheetData.length}`);
 
-            // 将当前电芯的数据添加到总数据中
-            allSheetData.push(...currentCellData);
+            // 创建工作表
+            const worksheet = XLSX.utils.aoa_to_sheet(allSheetData);
 
-            // 在电芯之间添加分隔行（除了最后一个电芯）
-            if (index < exportData.length - 1) {
-                allSheetData.push([{ v: "", s: {} }]); // 空行分隔
-                allSheetData.push([
-                    {
-                        v: "─".repeat(50),
-                        s: {
-                            font: { sz: 10, color: { rgb: "BDBDBD" } },
-                            alignment: { horizontal: "center" },
-                        },
-                    },
-                ]); // 分隔线
-                allSheetData.push([{ v: "", s: {} }]); // 空行分隔
-            }
-        });
-
-        console.log(`合并后的总数据行数: ${allSheetData.length}`);
-
-        // 创建工作表
-        const worksheet = XLSX.utils.aoa_to_sheet(allSheetData);
-
-        // 设置列宽 - 动态计算列数，考虑到单元格可能是对象格式
-        const maxCols = Math.max(
-            ...allSheetData.map((row) => (Array.isArray(row) ? row.length : 1)),
-            1
-        );
-        const cols = [];
-        for (let i = 0; i < maxCols; i++) {
-            let maxWidth = 10; // 最小宽度
-            // 计算该列的最大宽度
-            for (let j = 0; j < allSheetData.length; j++) {
-                if (allSheetData[j] && allSheetData[j][i]) {
-                    const cellContent =
-                        typeof allSheetData[j][i] === "object"
-                            ? allSheetData[j][i].v || ""
-                            : allSheetData[j][i];
-                    const cellLength = cellContent.toString().length;
-                    if (cellLength > maxWidth) {
-                        maxWidth = cellLength;
+            // 设置列宽 - 动态计算列数，考虑到单元格可能是对象格式
+            const maxCols = Math.max(
+                ...allSheetData.map((row) => (Array.isArray(row) ? row.length : 1)),
+                1
+            );
+            const cols = [];
+            for (let i = 0; i < maxCols; i++) {
+                let maxWidth = 10; // 最小宽度
+                // 计算该列的最大宽度
+                for (let j = 0; j < allSheetData.length; j++) {
+                    if (allSheetData[j] && allSheetData[j][i]) {
+                        const cellContent =
+                            typeof allSheetData[j][i] === "object"
+                                ? allSheetData[j][i].v || ""
+                                : allSheetData[j][i];
+                        const cellLength = cellContent.toString().length;
+                        if (cellLength > maxWidth) {
+                            maxWidth = cellLength;
+                        }
                     }
                 }
+                cols.push({ width: Math.min(maxWidth + 2, 50) }); // 限制最大宽度为50
             }
-            cols.push({ width: Math.min(maxWidth + 2, 50) }); // 限制最大宽度为50
-        }
-        worksheet["!cols"] = cols;
+            worksheet["!cols"] = cols;
 
-        XLSX.utils.book_append_sheet(workbook, worksheet, "电芯数据");
-        console.log(`工作表 "电芯数据" 创建完成，总行数: ${allSheetData.length}，列数: ${maxCols}`);
+            XLSX.utils.book_append_sheet(workbook, worksheet, "电芯数据");
+            console.log(
+                `工作表 "电芯数据" 创建完成，总行数: ${allSheetData.length}，列数: ${maxCols}`
+            );
 
-        console.log("Excel工作簿生成完成，总工作表数:", workbook.SheetNames.length);
-        return workbook;
-    }, [exportData, fetchedData, _convertApiDataToExcelRows]);
+            console.log("Excel工作簿生成完成，总工作表数:", workbook.SheetNames.length);
+            return workbook;
+        },
+        [exportData, fetchedData, _convertApiDataToExcelRows]
+    );
 
     /**
      * 处理导出操作 - 先获取API数据再导出，添加详细的错误处理和调试
@@ -643,16 +661,52 @@ const ExcelExportButton = ({
 
             console.log("=== 开始导出流程 ===");
             console.log("导出数据:", exportData);
-            message.info(`开始获取 ${totalCells} 个电芯的数据...`);
+            message.info(`开始导出 ${totalCells} 个电芯的数据...`);
+
+            // 初始化处理状态
+            setCurrentProcessing({ index: 0, barcode: "", total: totalCells });
 
             for (let i = 0; i < exportData.length; i++) {
                 const item = exportData[i];
-                const progress = Math.floor((i / totalCells) * 50); // 前50%用于数据获取
-                setExportProgress(progress);
 
-                console.log(`\n--- 处理第 ${i + 1}/${totalCells} 个电芯: ${item.barcode} ---`);
+                // 数据获取阶段占85%，每个电芯处理开始时更新进度
+                const dataFetchProgress = Math.floor((i / totalCells) * 85);
+                setExportProgress(dataFetchProgress);
+
+                // 更新当前处理状态
+                setCurrentProcessing({
+                    index: i + 1,
+                    barcode: item.barcode,
+                    total: totalCells,
+                });
+
+                console.log(
+                    `\n--- 处理第 ${i + 1}/${totalCells} 个电芯: ${
+                        item.barcode
+                    } (${dataFetchProgress}%) ---`
+                );
+
+                // 显示当前处理进度（每10个电芯或最后一个显示一次消息）
+                if (i % 10 === 0 || i === totalCells - 1) {
+                    message.info(
+                        `正在处理第 ${i + 1}/${totalCells} 个电芯... (${dataFetchProgress}%)`
+                    );
+                }
 
                 try {
+                    // 检查是否已有缓存数据
+                    if (fetchedData.has(item.barcode)) {
+                        console.log(`使用缓存数据获取电芯 ${item.barcode} 的数据`);
+                        const cachedData = fetchedData.get(item.barcode);
+                        fetchedDataMap.set(item.barcode, cachedData);
+                        console.log(`电芯 ${item.barcode} 使用缓存数据完成`);
+
+                        // 缓存数据处理完成后更新进度
+                        const completedProgress = Math.floor(((i + 1) / totalCells) * 85);
+                        setExportProgress(completedProgress);
+                        continue;
+                    }
+
                     console.log(`调用API获取电芯 ${item.barcode} 的数据...`);
                     const apiData = await _fetchCellData(item.barcode);
 
@@ -680,6 +734,10 @@ const ExcelExportButton = ({
                     } else {
                         console.warn(`⚠️ 电芯 ${item.barcode} 数据为空`);
                     }
+
+                    // API数据处理完成后更新进度
+                    const completedProgress = Math.floor(((i + 1) / totalCells) * 85);
+                    setExportProgress(completedProgress);
                 } catch (error) {
                     console.error(`❌ 获取电芯 ${item.barcode} 数据失败:`, error);
                     // 即使失败也继续，使用空数据
@@ -690,6 +748,10 @@ const ExcelExportButton = ({
                     };
                     fetchedDataMap.set(item.barcode, emptyData);
                     console.log(`使用空数据填充电芯 ${item.barcode}`);
+
+                    // 错误处理完成后也更新进度
+                    const completedProgress = Math.floor(((i + 1) / totalCells) * 85);
+                    setExportProgress(completedProgress);
                 }
             }
 
@@ -697,27 +759,27 @@ const ExcelExportButton = ({
             console.log("获取到的数据缓存:", fetchedDataMap);
             console.log("缓存大小:", fetchedDataMap.size);
 
-            // 保存获取的数据
+            // 保存获取的数据（用于下次导出的缓存）
             setFetchedData(fetchedDataMap);
 
-            // 第二阶段：生成Excel文件
-            setExportProgress(60);
+            // 第二阶段：生成Excel文件 (85%-95%)
+            setExportProgress(88);
             message.info("正在生成Excel文件...");
 
             console.log("\n=== 开始生成Excel工作簿 ===");
 
-            // 等待状态更新完成
-            await new Promise((resolve) => setTimeout(resolve, 100));
+            // 直接使用获取的数据生成工作簿，不依赖状态更新
+            const workbook = _generateWorkbook(fetchedDataMap);
 
-            const workbook = _generateWorkbook();
-
-            setExportProgress(90);
+            // 第三阶段：文件导出 (95%-100%)
+            setExportProgress(95);
 
             // 生成文件名
             const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, "");
             const fileName = `${filename}_${timestamp}.xlsx`;
 
             console.log(`准备导出Excel文件: ${fileName}`);
+            message.info("正在保存Excel文件...");
 
             // 导出文件
             XLSX.writeFile(workbook, fileName);
@@ -731,6 +793,7 @@ const ExcelExportButton = ({
         } finally {
             setLoading(false);
             setExportProgress(0);
+            setCurrentProcessing({ index: 0, barcode: "", total: 0 });
         }
     }, [exportData, filename, _fetchCellData, _generateWorkbook]);
 
@@ -753,11 +816,27 @@ const ExcelExportButton = ({
                   )
                 : 0;
 
+            // 检查是否有缓存的API数据
+            const hasApiData = fetchedData.has(item.barcode);
+            const apiData = fetchedData.get(item.barcode);
+            const hasValidData =
+                hasApiData &&
+                apiData &&
+                ((apiData.coreBagCodes && Object.keys(apiData.coreBagCodes).length > 0) ||
+                    (apiData.resultParams && Object.keys(apiData.resultParams).length > 0) ||
+                    (apiData.materialData &&
+                        ((apiData.materialData.positive &&
+                            apiData.materialData.positive.length > 0) ||
+                            (apiData.materialData.ceramic &&
+                                apiData.materialData.ceramic.length > 0) ||
+                            (apiData.materialData.negative &&
+                                apiData.materialData.negative.length > 0))));
+
             return {
                 key: index,
                 序号: index + 1,
                 电芯条码: item.barcode || "未知",
-                数据状态: "待导出",
+                数据状态: hasValidData ? "有数据" : hasApiData ? "无有效数据" : "待获取",
                 工序分组: groupCount,
                 工序总数: processCount,
                 备注: `${groupCount}个分组，${processCount}个工序，包含芯包码和参数数据`,
@@ -766,7 +845,7 @@ const ExcelExportButton = ({
 
         setPreviewData(preview);
         setPreviewVisible(true);
-    }, [exportData]);
+    }, [exportData, fetchedData]);
 
     /**
      * 预览表格列配置
@@ -845,7 +924,13 @@ const ExcelExportButton = ({
                     }}
                 >
                     {loading ? (
-                        <span>导出中... {exportProgress > 0 && `${exportProgress}%`}</span>
+                        <span>
+                            {exportProgress < 85
+                                ? `正在获取数据... ${exportProgress}%`
+                                : exportProgress < 95
+                                ? `正在生成Excel... ${exportProgress}%`
+                                : `正在保存文件... ${exportProgress}%`}
+                        </span>
                     ) : (
                         buttonText
                     )}
@@ -864,18 +949,6 @@ const ExcelExportButton = ({
                     </Button>
                 )}
             </Space>
-
-            {/* 导出进度显示 */}
-            {loading && exportProgress > 0 && (
-                <div style={{ marginTop: "8px" }}>
-                    <Progress
-                        percent={exportProgress}
-                        size="small"
-                        status="active"
-                        showInfo={false}
-                    />
-                </div>
-            )}
 
             {/* 预览模态框 */}
             <Modal
