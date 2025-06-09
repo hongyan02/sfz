@@ -3,23 +3,35 @@
 import React, { useEffect, useState } from "react";
 import { Table, Empty, Spin } from "antd";
 import { useSearchStore } from "../store";
-import { fetchMaterialPro } from "../services/api";
+import { fetchCoreBagCode } from "../services/api";
 
 /**
- * 工艺名称表格组件
+ * 芯包条码表格组件
  * @param {Object} props
  * @param {string|Array} props.processName - 工艺名称，可能是字符串或数组（作为operation_name使用）
+ * @param {string} props.column1 - 第一列的名称（如：正极浆料），当有column参数时此参数无效
+ * @param {string|Array<string>} [props.column] - 第一列的内容，可以是字符串（所有行使用相同名称）或数组（每行使用对应的名称），如果提供则不添加序号
  * @param {boolean} [props.loading] - 加载状态
  * @param {Object} [props.style] - 自定义样式
  */
-const ProcessNameTable = ({ processName, loading = false, style = {} }) => {
+const CoreBagCodeTable = ({
+    processName,
+    column1 = "条码项目",
+    column,
+    loading = false,
+    style = {},
+}) => {
     const { material_lot_code } = useSearchStore();
     const [apiLoading, setApiLoading] = useState(false);
     const [data, setData] = useState([]);
     const [error, setError] = useState(null);
 
-    // 数据排序函数
-    const sortTableData = (tableData) => {
+    /**
+     * 数据排序函数
+     * @param {Array} tableData - 表格数据
+     * @returns {Array} 排序后的数据
+     */
+    const _sortTableData = (tableData) => {
         return [...tableData].sort((a, b) => {
             const nameA = (a.name || "").toString().toLowerCase();
             const nameB = (b.name || "").toString().toLowerCase();
@@ -29,7 +41,10 @@ const ProcessNameTable = ({ processName, loading = false, style = {} }) => {
 
     // 获取API数据
     useEffect(() => {
-        const fetchData = async () => {
+        /**
+         * 获取条码数据
+         */
+        const _fetchData = async () => {
             if (!material_lot_code || !processName) {
                 setData([]);
                 return;
@@ -73,39 +88,41 @@ const ProcessNameTable = ({ processName, loading = false, style = {} }) => {
             try {
                 // 对所有 operationName 并行调用 API
                 const promises = operationNames.map((operationName) =>
-                    fetchMaterialPro(material_lot_code, operationName)
+                    fetchCoreBagCode(material_lot_code, operationName)
                 );
 
                 const results = await Promise.all(promises);
 
                 // 合并所有结果
-                let allMaterials = [];
+                let allCoreBagCodes = [];
                 results.forEach((result) => {
-                    if (result && result.Material && Array.isArray(result.Material)) {
-                        allMaterials = allMaterials.concat(result.Material);
+                    if (result && result.coreBagCode && Array.isArray(result.coreBagCode)) {
+                        allCoreBagCodes = allCoreBagCodes.concat(result.coreBagCode);
                     }
                 });
 
-                // 去重处理（基于 MATERIAL_LOT_CODE）
-                const uniqueMaterials = allMaterials.reduce((acc, item) => {
-                    const key = item.MATERIAL_LOT_CODE || "";
-                    if (!acc.some((existing) => existing.MATERIAL_LOT_CODE === key)) {
-                        acc.push(item);
-                    }
-                    return acc;
-                }, []);
+                // 去重处理
+                const uniqueCoreBagCodes = [...new Set(allCoreBagCodes)].filter(
+                    (code) => code && code.trim()
+                );
 
-                // 处理返回的数据
-                const tableData = uniqueMaterials.map((item, index) => ({
+                // 处理返回的数据，格式化为表格数据
+                const tableData = uniqueCoreBagCodes.map((code, index) => ({
                     key: index,
-                    name: item.MATERIAL_NAME || "-",
-                    value: item.MATERIAL_LOT_CODE || "-",
+                    name: column
+                        ? Array.isArray(column) && column[index]
+                            ? column[index]
+                            : typeof column === "string"
+                            ? column
+                            : `${column1}${index + 1}`
+                        : `${column1}${index + 1}`,
+                    value: code,
                 }));
 
                 // 对数据进行排序
-                setData(sortTableData(tableData));
+                setData(_sortTableData(tableData));
             } catch (err) {
-                console.error("获取物料生产数据失败:", err);
+                console.error("获取芯包条码数据失败:", err);
                 setError("获取数据失败，请稍后重试");
                 setData([]);
             } finally {
@@ -113,8 +130,8 @@ const ProcessNameTable = ({ processName, loading = false, style = {} }) => {
             }
         };
 
-        fetchData();
-    }, [material_lot_code, processName]);
+        _fetchData();
+    }, [material_lot_code, processName, column1, column]);
 
     const isLoading = loading || apiLoading;
 
@@ -136,8 +153,11 @@ const ProcessNameTable = ({ processName, loading = false, style = {} }) => {
         },
     ];
 
-    // 渲染表格或加载状态
-    const renderContent = () => {
+    /**
+     * 渲染表格内容
+     * @returns {JSX.Element} 表格内容
+     */
+    const _renderContent = () => {
         if (isLoading) {
             return (
                 <div style={{ textAlign: "center", padding: "10px 0" }}>
@@ -187,7 +207,7 @@ const ProcessNameTable = ({ processName, loading = false, style = {} }) => {
         );
     };
 
-    return <div style={{ width: "100%", ...style }}>{renderContent()}</div>;
+    return <div style={{ width: "100%", ...style }}>{_renderContent()}</div>;
 };
 
-export default ProcessNameTable;
+export default CoreBagCodeTable;

@@ -6,6 +6,7 @@ import ProcessList from "../components/ProcessList";
 import ProcessTable from "../components/ProcessTable";
 import SearchBar from "../components/SearchBar";
 import Card from "../components/Card";
+import CoreBagCodeTable from "../components/CoreBagCodeTable";
 import MaterialEndWithCoreBagTable from "../components/MaterialEndWithCoreBagTable";
 import ProcessNameTable from "../components/ProcessNameTable";
 import MaterialEndTable from "../components/MaterialEndTable";
@@ -80,6 +81,11 @@ export default function Home() {
                             </Card>
 
                             <Card title="极片">
+                                <Card title="浆料">
+                                    <CoreBagCodeTable column1="正极浆料" processName="C021" />
+                                    <CoreBagCodeTable column1="负极浆料" processName="A020" />
+                                    <CoreBagCodeTable column1="陶瓷浆料" processName="C022" />
+                                </Card>
                                 <Card title="涂布卷">
                                     <ProcessNameTable processName={["C030", "A030"]} />
                                 </Card>
@@ -96,6 +102,8 @@ export default function Home() {
                             </Card>
 
                             <Card title="组装" workcell_id="51724.2">
+                                <CoreBagCodeTable column="A芯包" processName="E030" />
+                                <CoreBagCodeTable column="B芯包" processName="Z100" />
                                 <MaterialEndTable workcell_id="51724.2" />
                             </Card>
 
@@ -104,7 +112,8 @@ export default function Home() {
                             </Card>
 
                             <Card title="包装" workcell_id="51726.2">
-                                <MaterialEndTable workcell_id="51726.2" />
+                                <CoreBagCodeTable column="电芯" processName="F100" />
+                                {/* <MaterialEndTable workcell_id="51726.2" /> */}
                             </Card>
                         </div>
 
